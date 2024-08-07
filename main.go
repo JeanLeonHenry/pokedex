@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/JeanLeonHenry/pokedex/api"
 )
 
 type command struct {
@@ -34,10 +36,35 @@ func notImplemented() {
 	fmt.Println("Not implemented")
 }
 
+type config struct {
+	next     string
+	previous string
+}
+
+func (c *config) PrintLocations(url string) {
+	if url == "" {
+		log.Println("Empty url")
+		return
+	}
+	locations, previous, next := api.GetLocationsPage(url)
+	c.previous = previous
+	c.next = next
+	fmt.Println(locations)
+}
+
+func (c *config) Next() {
+	c.PrintLocations(c.next)
+}
+func (c *config) Prev() {
+	c.PrintLocations(c.previous)
+}
+
 func main() {
+	// Set up
+	cfg := &config{next: api.BaseUrl, previous: api.BaseUrl}
 	cmds = map[string]command{
-		"map":  {name: "map", description: "Display next 20 locations.", fn: notImplemented},
-		"mapb": {name: "mapb", description: "Display previous 20 locations.", fn: notImplemented},
+		"map":  {name: "map", description: "Display next 20 locations.", fn: cfg.Next},
+		"mapb": {name: "mapb", description: "Display previous 20 locations.", fn: cfg.Prev},
 		"help": {name: "help", description: "Display help message.", fn: displayHelp},
 		"exit": {name: "exit", description: "Quit program.", fn: func() { os.Exit(0) }},
 	}
@@ -46,7 +73,7 @@ func main() {
 	for {
 		fmt.Print("pokedex > ")
 		if ok := scanner.Scan(); !ok {
-			log.Println("Wrong input")
+			log.Fatal("Wrong input. Quitting.")
 		}
 		input := scanner.Text()
 		if _, ok := cmds[input]; !ok {
