@@ -8,8 +8,7 @@ import (
 )
 
 const (
-	BaseUrl string = "https://pokeapi.co/api/v2/location-area/"
-	Limit   int    = 20
+	BaseUrl string = "https://pokeapi.co/api/v2/location-area/?offset=0&limit=20"
 )
 
 type LocationAreaResponse struct {
@@ -93,7 +92,7 @@ type PokemonEncounter struct {
 }
 
 // GetLocationsPage polls the pokeapi for an api.Limit number of location areas, starting from given page.
-func GetLocationsPage(url string) (LocationSlice, string, string) {
+func GetLocationsPage(url string) LocationAreaResponse {
 	if url == "" {
 		url = BaseUrl
 	}
@@ -114,5 +113,5 @@ func GetLocationsPage(url string) (LocationSlice, string, string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return locations.Results, locations.Previous, locations.Next
+	return locations
 }
