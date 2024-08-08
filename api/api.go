@@ -2,13 +2,15 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 )
 
 const (
-	BaseUrl string = "https://pokeapi.co/api/v2/location-area/?offset=0&limit=20"
+	LocationAreaEndpoint  string = "https://pokeapi.co/api/v2/location-area/"
+	LocationAreaFirstPage string = LocationAreaEndpoint + "?offset=0&limit=20"
 )
 
 type LocationAreaResponse struct {
@@ -66,6 +68,15 @@ type Name struct {
 	Name     string   `json:"name"`
 	Language Language `json:"language"`
 }
+type PokemonSlice []Pokemon
+
+func (p PokemonSlice) String() (res string) {
+	for _, pokemon := range p {
+		res += fmt.Sprintln("\t-", pokemon.Name)
+	}
+	return
+}
+
 type Pokemon struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`
@@ -91,11 +102,7 @@ type PokemonEncounter struct {
 	VersionDetails []VersionEncounterDetail `json:"version_details"`
 }
 
-// GetLocationsPage polls the pokeapi for an api.Limit number of location areas, starting from given page.
-func GetLocationsPage(url string) LocationAreaResponse {
-	if url == "" {
-		url = BaseUrl
-	}
+func pollApi(url string) []byte {
 	res, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
@@ -108,10 +115,33 @@ func GetLocationsPage(url string) LocationAreaResponse {
 	if err != nil {
 		log.Fatal(err)
 	}
+	return body
+}
+
+// GetLocationsPage polls the pokeapi for an api.Limit number of location areas, starting from given page.
+func GetLocationsPage(url string) LocationAreaResponse {
+	if url == "" {
+		url = LocationAreaFirstPage
+	}
+	body := pollApi(url)
 	var locations LocationAreaResponse
-	err = json.Unmarshal(body, &locations)
+	err := json.Unmarshal(body, &locations)
 	if err != nil {
 		log.Fatal(err)
 	}
 	return locations
+}
+
+// GetPokemonsInArea polls the pokeapi for the given location and returns the local pokemons.
+func GetPokemonsInArea(locationName string) (result PokemonSlice) {
+	body := pollApi(LocationAreaEndpoint + locationName)
+	var location LocationArea
+	err := json.Unmarshal(body, &location)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, encounter := range location.PokemonEncounters {
+		result = append(result, encounter.Pokemon)
+	}
+	return result
 }
