@@ -39,7 +39,7 @@ Commands:`)
 	}
 }
 
-func notImplemented() {
+func notImplemented(...string) {
 	fmt.Println("Not implemented")
 }
 
@@ -108,6 +108,13 @@ func (c *config) printPokemons(args ...string) {
 	fmt.Println(pokemons)
 }
 
+func (c *config) tryCatchPokemon(args ...string) {
+	// if pokemon not cached, get details
+	// attempt catching pokemon
+	// if successfully caught, add to Pokedex
+	notImplemented(args...)
+}
+
 func (c *config) Next(...string) {
 	c.printLocations(c.next)
 }
@@ -124,6 +131,7 @@ func main() {
 		"explore": {name: "explore <location>", description: "List pokemons in the given location.", fn: cfg.printPokemons},
 		"help":    {name: "help", description: "Display help message.", fn: displayHelp},
 		"exit":    {name: "exit", description: "Quit program.", fn: func(...string) { os.Exit(0) }},
+		"catch":   {name: "catch <pokemon>", description: "Try and catch given pokemon.", fn: cfg.tryCatchPokemon},
 	}
 	// REPL
 	scanner := bufio.NewScanner(os.Stdin)
