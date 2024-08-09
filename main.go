@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	urls "net/url"
 	"os"
 	"strconv"
@@ -47,6 +48,25 @@ type config struct {
 	next     string
 	previous string
 	cache    pokecache.Cache
+	pokedex  map[string]api.PokemonDetails
+}
+
+// TODO: factor out the cache handling
+
+func getResource[T any](c *config, resource string, response *T, method func(string) T) {
+	if data, ok := c.cache.Get(resource); !ok {
+		*response = method(resource)
+		dataToCache, err := json.Marshal(*response)
+		if err != nil {
+			log.Fatalln("Error: couldn't cache response for ", resource)
+		}
+		c.cache.Add(resource, dataToCache)
+	} else {
+		err := json.Unmarshal(data, response)
+		if err != nil {
+			log.Fatalln("Error: couldn't unpack cache entry for ", resource)
+		}
+	}
 }
 
 func (c *config) printLocations(url string) {
@@ -57,8 +77,6 @@ func (c *config) printLocations(url string) {
 	var response api.LocationAreaResponse
 	if data, ok := c.cache.Get(url); !ok {
 		response = api.GetLocationsPage(url)
-		c.previous = response.Previous
-		c.next = response.Next
 
 		dataToCache, err := json.Marshal(response)
 		if err != nil {
@@ -70,9 +88,9 @@ func (c *config) printLocations(url string) {
 		if err != nil {
 			log.Fatalln("Error: couldn't unpack cache entry for ", url)
 		}
-		c.previous = response.Previous
-		c.next = response.Next
 	}
+	c.previous = response.Previous
+	c.next = response.Next
 	fmt.Println(response.Results)
 	current, _ := urls.Parse(url)
 	offset, _ := strconv.Atoi(current.Query()["offset"][0])
@@ -81,12 +99,12 @@ func (c *config) printLocations(url string) {
 
 func (c *config) printPokemons(args ...string) {
 	if len(args) != 1 {
-		log.Println("explore usage: explore <location name>")
+		log.Println("usage: explore <location name>")
 		return
 	}
 	locationName := args[0]
 
-	// NOTE: implement a little spinner that cycles through . -> .. -> ... ?
+	// NOTE: Maybe implement a little spinner that cycles through . -> .. -> ... ?
 	fmt.Println("Exploring", locationName, "...")
 
 	var pokemons api.PokemonSlice
@@ -109,10 +127,37 @@ func (c *config) printPokemons(args ...string) {
 }
 
 func (c *config) tryCatchPokemon(args ...string) {
+	if len(args) != 1 {
+		log.Println("usage: catch <pokemon>")
+		return
+	}
+	pokemonName := args[0]
+	fmt.Println("Catching", pokemonName, "...")
 	// if pokemon not cached, get details
+	var details api.PokemonDetails
+	url := api.PokemonEndpoint + pokemonName
+	if data, ok := c.cache.Get(url); !ok {
+		details = api.GetPokemonDetails(pokemonName)
+		dataToCache, err := json.Marshal(details)
+		if err != nil {
+			log.Fatalln("Error: couldn't cache response for ", url)
+		}
+		c.cache.Add(url, dataToCache)
+	} else {
+		err := json.Unmarshal(data, &details)
+		if err != nil {
+			log.Fatalln("Error: couldn't unpack cache entry for ", url)
+		}
+	}
+
 	// attempt catching pokemon
-	// if successfully caught, add to Pokedex
-	notImplemented(args...)
+	if rand.ExpFloat64()*50 > float64(details.BaseExperience) {
+		// if successfully caught, add to Pokedex
+		c.pokedex[pokemonName] = details
+		fmt.Println("Caught a lvl", details.BaseExperience, pokemonName, "!")
+	} else {
+		fmt.Println("A lvl", details.BaseExperience, pokemonName, "escaped !")
+	}
 }
 
 func (c *config) Next(...string) {
@@ -124,7 +169,12 @@ func (c *config) Prev(...string) {
 
 func main() {
 	// Set up
-	cfg := &config{next: api.LocationAreaFirstPage, previous: api.LocationAreaFirstPage, cache: *pokecache.NewCache(20 * time.Second)}
+	cfg := &config{
+		next:     api.LocationAreaFirstPage,
+		previous: api.LocationAreaFirstPage,
+		cache:    *pokecache.NewCache(20 * time.Second),
+		pokedex:  make(map[string]api.PokemonDetails),
+	}
 	cmds = map[string]command{
 		"map":     {name: "map", description: "Display next 20 locations.", fn: cfg.Next},
 		"mapb":    {name: "mapb", description: "Display previous 20 locations.", fn: cfg.Prev},
