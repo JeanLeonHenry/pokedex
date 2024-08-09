@@ -44,8 +44,8 @@ func GetLocationsPage(url string) LocationAreaResponse {
 }
 
 // GetPokemonsInArea polls the pokeapi for the given location and returns the local pokemons.
-func GetPokemonsInArea(locationName string) (result PokemonSlice) {
-	body := pollApi(LocationAreaEndpoint + locationName)
+func GetPokemonsInArea(url string) (result PokemonSlice) {
+	body := pollApi(url)
 	var location LocationArea
 	err := json.Unmarshal(body, &location)
 	if err != nil {
@@ -58,8 +58,8 @@ func GetPokemonsInArea(locationName string) (result PokemonSlice) {
 }
 
 // GetPokemonDetails polls the pokeapi for details on the given pokemon.
-func GetPokemonDetails(pokemonName string) PokemonDetails {
-	body := pollApi(PokemonEndpoint + pokemonName)
+func GetPokemonDetails(url string) PokemonDetails {
+	body := pollApi(url)
 	var details PokemonDetails
 	err := json.Unmarshal(body, &details)
 	if err != nil {
