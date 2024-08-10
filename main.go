@@ -121,6 +121,19 @@ func (c *config) tryCatchPokemon(args ...string) {
 	}
 }
 
+func (c *config) inspectPokemon(args ...string) {
+	if len(args) != 1 {
+		fmt.Println("usage: inspect <pokemon>")
+		return
+	}
+	pokemonName := args[0]
+	if details, ok := c.pokedex[pokemonName]; !ok {
+		fmt.Println("Didn't catch any", pokemonName)
+	} else {
+		fmt.Println(details)
+	}
+}
+
 func (c *config) Next(...string) {
 	c.printLocations(c.next)
 }
@@ -143,6 +156,7 @@ func main() {
 		"help":    {name: "help", description: "Display help message.", fn: displayHelp},
 		"exit":    {name: "exit", description: "Quit program.", fn: func(...string) { os.Exit(0) }},
 		"catch":   {name: "catch <pokemon>", description: "Try and catch given pokemon.", fn: cfg.tryCatchPokemon},
+		"inspect": {name: "inspect <pokemon>", description: "Show details on the given pokemon from your pokedex.", fn: cfg.inspectPokemon},
 	}
 	// REPL
 	scanner := bufio.NewScanner(os.Stdin)

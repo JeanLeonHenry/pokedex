@@ -332,21 +332,8 @@ type PokemonDetails struct {
 		Latest string `json:"latest"`
 		Legacy string `json:"legacy"`
 	} `json:"cries"`
-	Stats []struct {
-		BaseStat int `json:"base_stat"`
-		Effort   int `json:"effort"`
-		Stat     struct {
-			Name string `json:"name"`
-			URL  string `json:"url"`
-		} `json:"stat"`
-	} `json:"stats"`
-	Types []struct {
-		Slot int `json:"slot"`
-		Type struct {
-			Name string `json:"name"`
-			URL  string `json:"url"`
-		} `json:"type"`
-	} `json:"types"`
+	Stats     StatSlice `json:"stats"`
+	Types     TypeSlice `json:"types"`
 	PastTypes []struct {
 		Generation struct {
 			Name string `json:"name"`
@@ -360,4 +347,46 @@ type PokemonDetails struct {
 			} `json:"type"`
 		} `json:"types"`
 	} `json:"past_types"`
+}
+
+type Type struct {
+	Slot int `json:"slot"`
+	Type struct {
+		Name string `json:"name"`
+		URL  string `json:"url"`
+	} `json:"type"`
+}
+type TypeSlice []Type
+
+func (t TypeSlice) String() (result string) {
+	for _, pokemonType := range t {
+		result += fmt.Sprintf("\t- %v\n", pokemonType.Type.Name)
+	}
+	return result
+}
+
+type Stat struct {
+	BaseStat int `json:"base_stat"`
+	Effort   int `json:"effort"`
+	Stat     struct {
+		Name string `json:"name"`
+		URL  string `json:"url"`
+	} `json:"stat"`
+}
+type StatSlice []Stat
+
+func (s StatSlice) String() (result string) {
+	for _, stat := range s {
+		result += fmt.Sprintf("\t- %v: %v\n", stat.Stat.Name, stat.BaseStat)
+	}
+	return result
+}
+
+func (p PokemonDetails) String() (result string) {
+	result += fmt.Sprintf("Name: %v\n", p.Name)
+	result += fmt.Sprintf("Height: %v\n", p.Height)
+	result += fmt.Sprintf("Weight: %v\n", p.Weight)
+	result += fmt.Sprintf("Stats: %v\n", p.Stats)
+	result += fmt.Sprintf("Types: %v\n", p.Types)
+	return
 }
