@@ -44,11 +44,20 @@ func notImplemented(...string) {
 	fmt.Println("Not implemented")
 }
 
+type Pokedex map[string]api.PokemonDetails
+
+func (p Pokedex) String() (result string) {
+	for name := range p {
+		result += fmt.Sprintln("\t-", name)
+	}
+	return result
+}
+
 type config struct {
 	next     string
 	previous string
 	cache    pokecache.Cache
-	pokedex  map[string]api.PokemonDetails
+	pokedex  Pokedex
 }
 
 func getResource[T any](c *config, resource string, response *T, getter func(string) T) {
@@ -89,7 +98,7 @@ func (c *config) printPokemons(args ...string) {
 	}
 	locationName := args[0]
 
-	// NOTE: Maybe implement a little spinner that cycles through . -> .. -> ... ?
+	// TODO: implement a little spinner that cycles through . -> .. -> ...
 	fmt.Println("Exploring", locationName, "...")
 
 	var pokemons api.PokemonSlice
@@ -128,7 +137,7 @@ func (c *config) inspectPokemon(args ...string) {
 	}
 	pokemonName := args[0]
 	if details, ok := c.pokedex[pokemonName]; !ok {
-		fmt.Println("Didn't catch any", pokemonName)
+		fmt.Println("No", pokemonName, "in pokedex.")
 	} else {
 		fmt.Println(details)
 	}
@@ -147,7 +156,7 @@ func main() {
 		next:     api.LocationAreaFirstPage,
 		previous: api.LocationAreaFirstPage,
 		cache:    *pokecache.NewCache(20 * time.Second),
-		pokedex:  make(map[string]api.PokemonDetails),
+		pokedex:  make(Pokedex),
 	}
 	cmds = map[string]command{
 		"map":     {name: "map", description: "Display next 20 locations.", fn: cfg.Next},
@@ -157,10 +166,14 @@ func main() {
 		"exit":    {name: "exit", description: "Quit program.", fn: func(...string) { os.Exit(0) }},
 		"catch":   {name: "catch <pokemon>", description: "Try and catch given pokemon.", fn: cfg.tryCatchPokemon},
 		"inspect": {name: "inspect <pokemon>", description: "Show details on the given pokemon from your pokedex.", fn: cfg.inspectPokemon},
+		"pokedex": {name: "pokedex", description: "List every caught pokemon.", fn: func(s ...string) { fmt.Println("Your Pokedex:\n", cfg.pokedex) }},
 	}
 	// REPL
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
+		// TODO: add some cli niceties
+		// - up/down should navigate a cmd history
+		// - tab should complete on possible cmds
 		fmt.Print("pokedex > ")
 		if ok := scanner.Scan(); !ok {
 			log.Fatal("Wrong input. Quitting.")
